@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/alexj212/console/parser"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -302,7 +303,10 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 
 		for curCmd != nil {
 			args := append([]string{curCmd.Cmd}, curCmd.Args...)
+
+			//fmt.Printf("args: %v\n", strings.Join(args, " | "))
 			args, err := c.runLineHooks(args)
+			//fmt.Printf("after args: %v\n", strings.Join(args, " | "))
 			if err != nil {
 				fmt.Printf("executeLine runLineHooks error: %s\n", err.Error())
 			}
@@ -316,8 +320,14 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 				rootCmd.SetIn(input)
 			}
 
-			if err := rootCmd.Execute(); err != nil {
-				return "", err
+			var cmdc *cobra.Command
+			cmdc, err = rootCmd.ExecuteC()
+			if err != nil {
+				if cmdc != nil {
+					return "nil, nil", errors.Wrapf(err, "executeLine unable to execute `%s | %s` args: %v", cmdc.Root().Name(), cmdc.Name(), args)
+				}
+
+				return "nil, nil", errors.Wrapf(err, "executeLine unable to execute `%s` args: %v", rootCmd.Name(), args)
 			}
 
 			input = &buf
