@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/alexj212/console/parser"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -324,10 +323,10 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 			cmdc, err = rootCmd.ExecuteC()
 			if err != nil {
 				if cmdc != nil {
-					return "nil, nil", errors.Wrapf(err, "executeLine unable to execute `%s | %s` args: %v", cmdc.Root().Name(), cmdc.Name(), args)
+					return "nil, nil", err //, errors.Wrapf(err, "executeLine unable to execute `%s | %s` args: %v", cmdc.Root().Name(), cmdc.Name(), args)
 				}
 
-				return "nil, nil", errors.Wrapf(err, "executeLine unable to execute `%s` args: %v", rootCmd.Name(), args)
+				return "nil, nil", err //errors.Wrapf(err, "executeLine unable to execute `%s` args: %v", rootCmd.Name(), args)
 			}
 
 			input = &buf

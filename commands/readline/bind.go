@@ -207,7 +207,7 @@ Exporting binds:
 		}
 
 		if !found {
-			return fmt.Errorf("Unknown command: %s", args[1])
+			return fmt.Errorf("unknown command: %s", args[1])
 		}
 
 		// If the keymap doesn't exist, create it.
