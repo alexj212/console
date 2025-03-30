@@ -14,15 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *Console) SetParser(p func(string) ([]string, error)) {
-	if p == nil {
-		c.parse = c.NoTouch
-		return
-	}
-	c.parse = p
-
-}
-
 // Start - Start the console application (readline loop). Blocking.
 // The error returned will always be an error that the console
 // application does not understand or cannot handle.
@@ -32,10 +23,6 @@ func (c *Console) Start() error {
 	// Print the console logo
 	if c.printLogo != nil {
 		c.printLogo(c)
-	}
-
-	if c.parse == nil {
-		c.parse = c.NoTouch
 	}
 
 	for {

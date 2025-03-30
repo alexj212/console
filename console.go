@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/alexj212/console/parser"
+	"github.com/kballard/go-shellquote"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -26,7 +27,7 @@ type Console struct {
 	printed     bool             // Used to adjust asynchronous messages too.
 	mutex       *sync.RWMutex    // Concurrency management.
 	SaveFile    string
-	parse       func(line string) (args []string, err error)
+
 	// Execution
 
 	// Leave an empty line before executing the command.
@@ -73,7 +74,6 @@ func New(app string) *Console {
 		menus: make(map[string]*Menu),
 		mutex: &sync.RWMutex{},
 	}
-	console.parse = console.ShellQuote
 
 	// Quality of life improvements.
 	console.setupShell()
@@ -302,14 +302,12 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 
 		for curCmd != nil {
 			args := append([]string{curCmd.Cmd}, curCmd.Args...)
-
-			//fmt.Printf("args: %v\n", strings.Join(args, " | "))
-			args, err := c.runLineHooks(args)
-			//fmt.Printf("after args: %v\n", strings.Join(args, " | "))
-			if err != nil {
-				fmt.Printf("executeLine runLineHooks error: %s\n", err.Error())
-			}
 			args, _ = c.runLineHooks(args)
+			line := strings.Join(args, " ")
+			args, _ = shellquote.Split(line)
+			//args, _ = c.ShellQuote(line)
+
+			//fmt.Printf("after ShellQuote: %v\n", strings.Join(args, " | "))
 
 			rootCmd.SetArgs(args)
 			rootCmd.SetOut(&buf)
@@ -320,13 +318,13 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 			}
 
 			var cmdc *cobra.Command
-			cmdc, err = rootCmd.ExecuteC()
+			cmdc, err := rootCmd.ExecuteC()
 			if err != nil {
 				if cmdc != nil {
-					return "nil, nil", err //, errors.Wrapf(err, "executeLine unable to execute `%s | %s` args: %v", cmdc.Root().Name(), cmdc.Name(), args)
+					return "", err //, errors.Wrapf(err, "executeLine unable to execute `%s | %s` args: %v", cmdc.Root().Name(), cmdc.Name(), args)
 				}
 
-				return "nil, nil", err //errors.Wrapf(err, "executeLine unable to execute `%s` args: %v", rootCmd.Name(), args)
+				return "", err //errors.Wrapf(err, "executeLine unable to execute `%s` args: %v", rootCmd.Name(), args)
 			}
 
 			input = &buf
