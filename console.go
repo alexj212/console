@@ -264,7 +264,7 @@ func (c *Console) executeLine(menu *Menu, line string) {
 
 	res, err := c.ExecuteCommand(rootCmd, commands)
 	if err != nil {
-		fmt.Printf("executeLine ExecuteCommand error: %s\n", err.Error())
+		fmt.Printf("%s\n\n", err.Error())
 		return
 	}
 
