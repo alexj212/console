@@ -264,7 +264,6 @@ func (c *Console) executeLine(menu *Menu, line string) {
 
 	res, err := c.ExecuteCommand(rootCmd, commands)
 	if err != nil {
-		fmt.Printf("executeLine ExecuteCommand error: %s\n", err.Error())
 		return
 	}
 
@@ -304,9 +303,8 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 			args := append([]string{curCmd.Cmd}, curCmd.Args...)
 			args, err := c.runLineHooks(args)
 			if err != nil {
-				fmt.Printf("executeLine runLineHooks error: %s\n", err.Error())
+				fmt.Printf("ExecuteCommand runLineHooks error: %s\n", err.Error())
 			}
-			args, _ = c.runLineHooks(args)
 
 			rootCmd.SetArgs(args)
 			rootCmd.SetOut(&buf)
@@ -317,6 +315,7 @@ func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.Exec
 			}
 
 			if err := rootCmd.Execute(); err != nil {
+				fmt.Printf("ExecuteCommand error: %s\n", err.Error())
 				return "", err
 			}
 
