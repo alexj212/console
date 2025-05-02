@@ -279,7 +279,6 @@ func (c *Console) executeLine(menu *Menu, line string) {
 			fmt.Printf("executeLine failed to write to file `%v` error: %v", outFile, err)
 		}
 	}
-	fmt.Printf("%s\n", res)
 }
 func (c *Console) ExecuteLine(line string) (string, error) {
 	menu := c.ActiveMenu()
@@ -290,49 +289,71 @@ func (c *Console) ExecuteLine(line string) (string, error) {
 	return c.ExecuteCommand(menu.Command, commands)
 }
 
+type PrintWriter struct {
+	echo bool
+	buf  *bytes.Buffer
+}
+
+func NewPrintWriter(e bool) *PrintWriter {
+	return &PrintWriter{buf: &bytes.Buffer{}, echo: e}
+}
+
+func (pw *PrintWriter) Write(p []byte) (n int, err error) {
+	if pw.echo {
+		fmt.Printf("%s", string(p))
+	}
+
+	return pw.buf.Write(p)
+}
+
+func (pw *PrintWriter) Read(p []byte) (n int, err error) {
+	return pw.buf.Read(p)
+}
+func (pw *PrintWriter) Bytes() []byte {
+	return pw.buf.Bytes()
+}
+
+func (pw *PrintWriter) String() string {
+	return pw.buf.String()
+}
+
 // ExecuteCommand executes parsed commands using a Cobra root command with piped execution
 func (c *Console) ExecuteCommand(rootCmd *cobra.Command, commands []*parser.ExecCmd) (string, error) {
 
-	var output bytes.Buffer
+	out := &bytes.Buffer{}
 	var input io.Reader
 
 	for _, cmd := range commands {
-		var buf bytes.Buffer
+		piped := false
 		curCmd := cmd
-
+		buf := NewPrintWriter(curCmd.Pipe == nil)
 		for curCmd != nil {
 			args := append([]string{curCmd.Cmd}, curCmd.Args...)
 			args, _ = c.runLineHooks(args)
 			line := strings.Join(args, " ")
 			args, _ = shellquote.Split(line)
-			//args, _ = c.ShellQuote(line)
-
-			//fmt.Printf("after ShellQuote: %v\n", strings.Join(args, " | "))
 
 			rootCmd.SetArgs(args)
-			rootCmd.SetOut(&buf)
-			rootCmd.SetErr(&buf)
+			rootCmd.SetOut(buf)
+			rootCmd.SetErr(buf)
+			rootCmd.SetIn(input)
 
-			if input != nil {
-				rootCmd.SetIn(input)
-			}
-
-			var cmdc *cobra.Command
-			cmdc, err := rootCmd.ExecuteC()
+			_, err := rootCmd.ExecuteC()
 			if err != nil {
-				if cmdc != nil {
-					return "", err //, errors.Wrapf(err, "executeLine unable to execute `%s | %s` args: %v", cmdc.Root().Name(), cmdc.Name(), args)
-				}
-
-				return "", err //errors.Wrapf(err, "executeLine unable to execute `%s` args: %v", rootCmd.Name(), args)
+				return "", err
 			}
 
-			input = &buf
+			input = buf
 			curCmd = curCmd.Pipe
+			if curCmd != nil {
+				buf = NewPrintWriter(false)
+				piped = true
+			}
 		}
-
-		output.Write(buf.Bytes())
+		out.Write(buf.Bytes())
+		if piped {
+			fmt.Printf("%s\n", buf.String())
+		}
 	}
-
-	return output.String(), nil
+	return out.String(), nil
 }
